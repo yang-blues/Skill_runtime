@@ -8,7 +8,7 @@ class SkillRegistry:
     """
     skill元数据注册表
 
-    负责管理Runntime中已发现的skill(说明这时候skill的元数据已经加载了)
+    负责管理Runtime中已发现的skill(说明这时候skill的元数据已经加载了)
     """
     def __init__(self):
         self._skills: Dict[str,SkillMetadata]= {}

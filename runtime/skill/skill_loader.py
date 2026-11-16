@@ -10,7 +10,6 @@ from runtime.skill import SkillRegistry, SkillMetadata
 class SkillLoader:
     """
     Skill 加载器
-
     负责发现Skill,解析元数据并加载完整Skill内容
     """
     def __init__(self, skill_dir: Path):
