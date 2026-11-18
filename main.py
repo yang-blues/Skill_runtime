@@ -1,16 +1,29 @@
-# 这是一个示例 Python 脚本。
+from pathlib import Path
 
-# 按 Shift+F10 执行或将其替换为您的代码。
-# 按 双击 Shift 在所有地方搜索类、文件、工具窗口、操作和设置。
+from langchain_core.messages import HumanMessage
+
+from agent.graph import create_agent_graph
+from agent.tools import create_runtime_tools
+from llm_model.all_llm import llm
+from runtime.resource_reader import ResourceReader
+from runtime.script_runner import ScriptRunner
+from runtime.skill import  SkillLoader
+
+skill_dir = Path(r"D:\ipython\Skill_runtime\skills")
+#创建SkillLoader实例
+skill_loader = SkillLoader(skill_dir)
+#发现并且注册skill
+skill_loader.discover_skills()
+# 创建其他 Runtime 模块
+resource_reader = ResourceReader(skill_loader.registry)
+script_runner = ScriptRunner(skill_loader.registry)
+
+#创建工具
+tools = create_runtime_tools(skill_loader, resource_reader, script_runner)
 
 
-def print_hi(name):
-    # 在下面的代码行中使用断点来调试脚本。
-    print(f'Hi, {name}')  # 按 Ctrl+F8 切换断点。
+graph = create_agent_graph(llm, tools)
 
+res = graph.invoke({"messages":[HumanMessage(content="你目前有哪些skill可以用")],"loaded_skills":" "})
 
-# 按装订区域中的绿色按钮以运行脚本。
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# 访问 https://www.jetbrains.com/help/pycharm/ 获取 PyCharm 帮助
+print(res)
