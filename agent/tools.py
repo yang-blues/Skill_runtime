@@ -184,6 +184,54 @@ def create_runtime_tools(skill_loader:SkillLoader,
             return f"Skill刷新失败，原有注册表数据已保留。错误信息：{e}"
 
 
+    @tool
+    def reload_skill(skill_name:str,runtime:ToolRuntime) -> Command :
+        """
+        重新加载加载指定 Skill 的完整说明文档。
 
-    return [load_skill, read_resource, run_script, list_skills,refresh_skills,unload_skill]
+        Args:
+            skill_name: Skill 的名称，必须是已注册的 Skill 名称。
+
+        Returns:
+            更新AgentState,并返回简短的工具执行结果
+        """
+        #1.判断注册表存在这个skill吗
+        if not skill_loader.registry.contains(skill_name):
+            return Command(
+                update={
+                    "messages": [ToolMessage(
+                        content=f"Skill'{skill_name}'尚未在注册表注册",
+                        tool_call_id=runtime.tool_call_id,
+                    )]
+                }
+            )
+        # 2.读取最新的Skill 完整文档
+        try:
+            content = skill_loader.load_skill(skill_name)
+        except Exception as e:
+            return Command(
+                update={
+                    "messages": [ToolMessage(
+                        content=f"Skill '{skill_name}' 重新加载失败：{e}",
+                        tool_call_id=runtime.tool_call_id,
+                    )]
+                }
+            )
+        # 3.返回Command 更新AgentState
+        return Command(
+            update={
+                "loaded_skills": [skill_name],
+                "skill_context": {
+                    skill_name: content
+                },
+                "messages": [ToolMessage(
+                    content=f"Skill'{skill_name}'已加载成功，内容已更新",
+                    tool_call_id=runtime.tool_call_id,
+                )]
+
+            }
+        )
+
+
+    return [load_skill, read_resource, run_script, list_skills,refresh_skills,unload_skill,reload_skill]
 
