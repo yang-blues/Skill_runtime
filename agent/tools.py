@@ -34,10 +34,10 @@ def create_runtime_tools(skill_loader:SkillLoader,
                 "skill_context":{
                     skill_name: content
                 },
-                "messages":ToolMessage(
+                "messages":[ToolMessage(
                     content=f"Skill'{skill_name}'已加载成功",
                     tool_call_id=runtime.tool_call_id,
-                )
+                )]
 
             }
         )
@@ -97,5 +97,32 @@ def create_runtime_tools(skill_loader:SkillLoader,
         #Tool的返回值会被封装成为ToolMessage.这里将数据序列化为JSON字符串，模型更容易理解结构信息
         return json.dumps(result,ensure_ascii=False,indent=2)
 
-    return [load_skill, read_resource, run_script, list_skills]
+    @tool
+    def refresh_skills() -> str:
+        """
+        重新扫描SKill根目录，发现新增，删除或修改的skill,
+        并更新当前Runtime的skill注册表
+
+        当前用户要求刷新，重新扫描或发现新添加的Skill时调用
+        """
+        try:
+            discovered_skills = skill_loader.discover_skills()
+
+            if not discovered_skills:
+                return "Skill刷新成功，当前没有可用的skill"
+
+            skill_names = [
+                metadata.name
+                for metadata in discovered_skills
+            ]
+            return (
+                f"Skill刷新成功，共发现{len(skill_names)}个Skill:\n"
+                + "\n".join(f"-{name}" for name in skill_names)
+            )
+        except Exception as e:
+            return f"Skill刷新失败，原有注册表数据已保留。错误信息：{e}"
+
+
+
+    return [load_skill, read_resource, run_script, list_skills,refresh_skills]
 

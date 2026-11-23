@@ -21,11 +21,21 @@ SYSTEM_PROMPT=ChatPromptTemplate.from_messages([
        执行脚本。
     7. 不要假设未查询或未加载的 Skill
        具备某种具体能力。
+    ## Skill 管理机制
+    1. 当前可用的 Skill 目录反映了 Runtime 最近一次成功刷新的结果。
+    2. 当用户明确要求刷新、重新扫描 Skill，或者告知刚刚添加、删除了 Skill 时，
+       调用 refresh_skills。
+    3. 刷新成功后，根据工具返回的最新 Skill 列表判断可用能力。
+    4. 如果用户要求使用某个 Skill，但当前目录中没有该 Skill，
+       可以询问用户是否已经将其添加到 Skill 目录，并在需要时刷新。
+    5. 不要在每次普通对话时无条件调用 refresh_skills。
+    6. 不要为了查询当前已有 Skill 而调用 refresh_skills，
+       应直接参考当前 Skill Catalog，必要时使用 list_skills。
     
     ## 当前已加载的 Skill
     {loaded_skills}
     
-    ## 当前SKill完整指令
+    ## 当前已加载的SKill完整指令
     {skill_context}
     
     ## 当前可用的 Skill 目录
