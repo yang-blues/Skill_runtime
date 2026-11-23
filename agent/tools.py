@@ -3,7 +3,7 @@ import json
 from langchain.tools import tool
 from langchain_core.messages import ToolMessage
 from langgraph.prebuilt import ToolRuntime
-from langgraph.types import Command
+from langgraph.types import Command, Overwrite
 
 from agent.state import AgentState
 from runtime.resource_reader import ResourceReader
@@ -25,9 +25,23 @@ def create_runtime_tools(skill_loader:SkillLoader,
         Returns:
             更新AgentState,并返回简短的工具执行结果
         """
-        #1.记载Skill 完整文档
+        #1.获取当前会话已经加载的Skil
+        loaded_skills = runtime.state.get("loaded_skills",[])
+        #2.判断是否已经加载
+        if skill_name in loaded_skills:
+            return Command(
+                update={
+                    "messages":[
+                        ToolMessage(
+                            content=f"Skill'{skill_name}'已经加载，，无需重复加载。",
+                            tool_call_id=runtime.tool_call_id,
+                        )
+                    ]
+                }
+            )
+        #3.记载Skill 完整文档
         content = skill_loader.load_skill(skill_name)
-        #2.返回Command 更新AgentState
+        #4.返回Command 更新AgentState
         return Command(
             update={
                 "loaded_skills":[skill_name],
@@ -41,6 +55,53 @@ def create_runtime_tools(skill_loader:SkillLoader,
 
             }
         )
+    @tool
+    def unload_skill(skill_name:str,runtime:ToolRuntime) -> Command :
+        """
+        卸载当前会话中已经加载的Skill
+
+        Args:
+            skill_name:需要卸载的Skill名称
+        """
+        #1.获取当前会话状态
+        loaded_skills = runtime.state.get("loaded_skills",[])
+        skill_context = runtime.state.get("skill_context",{})
+        #2.判断Skill是否已经加载
+        if skill_name not in loaded_skills:
+            return Command(
+                update={
+                    "messages":[
+                        ToolMessage(
+                            content=f"Skill'{skill_name}'当前未加载，无需卸载",
+                            tool_call_id=runtime.tool_call_id,
+                        )
+                    ]
+                }
+            )
+        #3.构建卸载后的新状态
+        new_loaded_skills = [
+            name for name in loaded_skills
+            if name != skill_name
+        ]
+        new_skill_context = {
+            name : content
+            for name, content in skill_context.items()
+            if name != skill_name
+        }
+        #4.使用Overwrite覆盖State
+        return Command(
+            update={
+                "loaded_skills":Overwrite(new_loaded_skills),
+                "skill_context":Overwrite(new_skill_context),
+                "messages":[
+                    ToolMessage(
+                        content=f"skill'{skill_name}'已经成功卸载",
+                        tool_call_id=runtime.tool_call_id,
+                    )
+                ]
+            }
+        )
+
 
     @tool
     def read_resource(skill_name :str,resource_path :str)-> str:
@@ -124,5 +185,5 @@ def create_runtime_tools(skill_loader:SkillLoader,
 
 
 
-    return [load_skill, read_resource, run_script, list_skills,refresh_skills]
+    return [load_skill, read_resource, run_script, list_skills,refresh_skills,unload_skill]
 
