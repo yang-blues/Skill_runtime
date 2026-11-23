@@ -43,4 +43,16 @@ class SkillRegistry:
         """获取已注册skill的数量"""
         return len(self._skills)
 
+    def replace_all(self,skills: list[SkillMetadata]) -> None:
+        """
+        原子替换当前注册表中全部的skill元数据
+        """
+        new_skills = {}
+        for metadate in skills:
+            if metadate.name  in new_skills:
+                raise ValueError(f"Skill已经注册:{metadate.name}")
+            new_skills[metadate.name] = metadate
+
+        self._skills = new_skills
+
 

@@ -49,8 +49,8 @@ class SkillLoader:
             new_registry.register(metadata)
             discovered_skills.append(metadata)
 
-            # 全部扫描成功后再替换注册表
-        self.registry = new_registry
+        # 全部扫描成功后再更改注册表
+        self.registry.replace_all(new_registry.list_skills())
 
         return discovered_skills
     def _parse_skill_metadata(

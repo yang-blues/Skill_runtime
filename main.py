@@ -22,8 +22,8 @@ script_runner = ScriptRunner(skill_loader.registry)
 tools = create_runtime_tools(skill_loader, resource_reader, script_runner)
 
 
-graph = create_agent_graph(llm, tools)
+graph = create_agent_graph(llm, tools,skill_loader.registry)
 
-res = graph.invoke({"messages":[HumanMessage(content="你目前有哪些skill可以用")],"loaded_skills":" "})
+res = graph.invoke({"messages":[HumanMessage(content="查询一下你有哪些技能")],"loaded_skills":" "})
 
 print(res)

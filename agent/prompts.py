@@ -23,8 +23,16 @@ SYSTEM_PROMPT=ChatPromptTemplate.from_messages([
        具备某种具体能力。
     
     ## 当前已加载的 Skill
-    
     {loaded_skills}
+    
+    ## 当前SKill完整指令
+    {skill_context}
+    
+    ## 当前可用的 Skill 目录
+    {skill_catalog}
+    
+    请根据当前已加载的 Skill 指令完成用户任务。
+    
      """),
     ("placeholder", "{messages}"),
 ])
