@@ -4,6 +4,9 @@ import logging
 import random
 import time
 
+from langchain_core.messages import ToolMessage
+from langgraph.errors import GraphBubbleUp
+
 from runtime.tool.tool_registy import ToolPolicyRegistry
 
 logger = logging.getLogger(__name__)
@@ -36,6 +39,21 @@ class ToolInterceptor:
         )
 
         return random.uniform(0,cap)
+
+    def _build_error_tool_message(self,request,error:Exception) -> ToolMessage:
+        """将工具执行异常转换成错误ToolMessage"""
+        tool_call = request.tool_call
+
+        error_message = (
+            f"工具执行失败，异常类型：{type(error).__name__},"
+            f"错误信息：{str(error)[:500]}"
+        )
+        return ToolMessage(
+            content=error_message,
+            tool_call_id=tool_call["id"],
+            name=tool_call["name"],
+            status="error",
+        )
 
 
 
@@ -75,6 +93,9 @@ class ToolInterceptor:
                         attempt,
                     )
                     return result
+                # 中断异常不做处理正常抛出
+                except GraphBubbleUp:
+                    raise
 
                 except RETRYABLE_TOOL_EXCEPTIONS as e:
                     #满足重试条件时继续循环
@@ -85,8 +106,8 @@ class ToolInterceptor:
                             attempt,
                             type(e).__name__,
                         )
-                        #重试次数耗尽跳出循环抛出异常
-                        raise
+                        # 重试次数耗尽跳出循环,异常处理返回
+                        return self._build_error_tool_message(request, e)
                     #4.计算指数退避 + 司机抖动时间
                     delay = self._calculate_retry_delay(attempt)
                     logger.warning(
@@ -105,7 +126,7 @@ class ToolInterceptor:
                         attempt,
                         type(e).__name__,
                     )
-                    raise
+                    return self._build_error_tool_message(request,e)
         finally:
                 duration_ms = (
                     time.perf_counter() - start_time
@@ -154,6 +175,8 @@ class ToolInterceptor:
                     )
 
                     return result
+                except GraphBubbleUp:
+                    raise
                 except RETRYABLE_TOOL_EXCEPTIONS as e:
                     # 满足重试条件时继续循环
                     if attempt >= max_attempts:
@@ -164,7 +187,7 @@ class ToolInterceptor:
                             type(e).__name__,
                         )
                         # 重试次数耗尽跳出循环抛出异常
-                        raise
+                        return self._build_error_tool_message(request, e)
                     # 4.计算指数退避 + 随机抖动时间
                     delay = self._calculate_retry_delay(attempt)
 
@@ -184,7 +207,7 @@ class ToolInterceptor:
                         attempt,
                         type(e).__name__,
                     )
-                    raise
+                    return self._build_error_tool_message(request, e)
         finally:
             duration_ms = (
                                   time.perf_counter() - start_time
